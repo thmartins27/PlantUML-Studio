@@ -1,0 +1,22 @@
+{
+  "name": "plantuml-studio",
+  "private": true,
+  "packageManager": "pnpm@12.9.1",
+  "engines": {
+    "node": ">=24.19.0 <25",
+    "pnpm": "12.9.1"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @plantuml-studio/web --filter @plantuml-studio/api dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm build && node --test tests/smoke.test.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "eslint": "9.39.1",
+    "typescript-eslint": "8.71.1",
+    "@types/node": "24.19.2"
+  }
+}
