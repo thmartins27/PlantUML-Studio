@@ -53,4 +53,49 @@ Fonte exibida somente para leitura, sem Monaco ou parser. SVGs são ilustraçõe
 Usar a skill local [ui-ux](../.agents/skills/ui-ux/SKILL.md) e a skill instalada `frontend-app-builder`. As instruções do projeto e este documento prevalecem sobre os padrões genéricos da skill. Pequenos ajustes dentro do sistema existente não exigem um novo conceito visual.
 
 ## Evolução
-A página mínima da fundação foi substituída pelo layout demonstrativo da Fase 2, autorizado pelo usuário. Integração do editor e renderização permanecem para fases futuras.
+A página mínima da fundação foi substituída pelo layout demonstrativo da Fase 2, autorizado pelo usuário. Ao concluir essa fase, editor e renderização ainda permaneciam para fases futuras.
+
+## Evolução da Fase 3
+- Monaco ocupa a área existente do editor sem alterar as proporções dos painéis.
+- Abas abertas rolam horizontalmente e indicam o documento ativo e alterações não salvas.
+- O explorador preserva a hierarquia compacta e expõe ações acessíveis de criar, renomear e excluir.
+- Diálogos de gerenciamento reutilizam cores, tipografia, bordas, raios e foco do sistema existente.
+- O atalho `Ctrl/Cmd+S` e o botão de salvar criam apenas um checkpoint na sessão; não comunicam persistência permanente.
+- Em mobile, Monaco e preview continuam alternados pelas abas Código/Preview, sem comprimir os dois painéis.
+
+## Evolução da Fase 4
+- O preview troca os estados demonstrativos por estados reais de aguardando, renderizando, sucesso e erro.
+- Durante uma atualização, o último SVG permanece visível com um indicador discreto; em erro, um painel acessível explica a falha e oferece nova tentativa.
+- O motor usa identidade de cores no tema claro e inversão por luminosidade no escuro, preservando contraste inclusive sobre cores explícitas sem filtros CSS no SVG.
+- SVGs são mostrados como imagens sanitizadas; nenhum markup retornado é injetado diretamente no DOM.
+- Os controles de zoom continuam visíveis para preservar o layout, mas ficam desabilitados até a Fase 5.
+
+## Evolução da Fase 5
+- O fundo pontilhado existente passa a identificar a superfície navegável, sem competir com o diagrama.
+- A barra flutuante preserva geometria, tokens e ícones da Fase 2; contém zoom out, percentual, zoom in, reset e Fit to Screen.
+- Zoom varia de 10% a 400%; reset retorna ao centro em 100% e Fit to Screen nunca amplia um diagrama acima de 100%.
+- O cursor usa `grab`/`grabbing`, imagens não são arrastáveis e o canvas mantém foco visível e deslocamento por setas.
+- A primeira imagem é centralizada. Atualizações preservam escala e posição quando possível, inclusive durante loading ou erro com último SVG válido.
+- Gestos e animações são suaves, mas as transições são removidas quando `prefers-reduced-motion` está ativo.
+
+## Evolução da Fase 6
+- A topbar identifica o workspace como local e reúne exportações em um popover compacto, sem transformar a interface em um gerenciador de arquivos genérico.
+- O explorador oferece importação ao lado da criação e comunica sucesso ou falha junto ao contexto dos documentos.
+- Editor e statusbar distinguem carregando, salvando, salvo e erro com texto e indicador visual; cor nunca é o único sinal.
+- O botão Salvar e `Ctrl/Cmd+S` acionam gravação real no IndexedDB; o autosave permanece o comportamento padrão.
+- Exportação de PNG mantém a escolha de escala ao lado da ação. Opções gráficas ficam desabilitadas enquanto não houver SVG válido.
+- SVG e PNG usam apenas o diagrama sanitizado. Fundo pontilhado, toolbar, controles e transformação atual do canvas permanecem exclusivos da interface.
+
+## Evolução da Fase 7
+- O explorador usa árvore compacta de pastas e arquivos, preservando recuos, estados de expansão e ações acessíveis no padrão já existente.
+- O arquivo principal recebe selo textual e ação própria; selecionar outro arquivo atualiza editor e preview sem mover esse selo. O cabeçalho do preview identifica o caminho atualmente visualizado.
+- Importar pasta ocupa a mesma barra compacta das ações de arquivo e reporta limites ou conflitos junto ao explorador.
+- Tela cheia é uma ação do canvas e permanece na barra flutuante ao lado de Fit to Screen; sem diagrama, o mesmo controle fica no canto do preview.
+- No modo expandido, chrome global, editor e sidebar desaparecem; fundo, SVG e controles mantêm os mesmos tokens e não recriam o canvas.
+
+## Evolução da Fase 8
+- O explorador inicia com um seletor compacto de projeto, selo textual de origem e ações acessíveis para abrir pasta, importar pasta, criar e fechar projeto.
+- Projetos locais usam o rótulo `local`; projetos persistidos somente no IndexedDB usam `navegador`. A distinção nunca depende apenas de cor.
+- Abas, seleção, árvore e arquivo principal exibem somente o estado do projeto ativo.
+- O editor diferencia alteração pendente, salvamento no navegador e gravação no disco; projetos locais oferecem Salvar todos ao lado de `Ctrl+S`.
+- Navegadores incompatíveis recebem orientação para Importar Pasta sem ocultar o restante do fluxo.

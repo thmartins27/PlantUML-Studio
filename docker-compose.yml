@@ -1,0 +1,64 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3001
+      PLANTUML_RENDERER_URL: http://renderer:8080
+      RENDER_TIMEOUT_MS: 5000
+      WEB_ORIGIN: http://127.0.0.1:3000
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      renderer:
+        condition: service_healthy
+    networks:
+      - renderer-backplane
+      - api-edge
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.50
+
+  renderer:
+    image: plantuml/plantuml-server:jetty-v1.2026.8@sha256:5f6f99ec2fc11c8236e80630d622b0ba22b8d9301b39b18db4bb2b95cae87781
+    environment:
+      PLANTUML_SECURITY_PROFILE: SANDBOX
+      PLANTUML_LIMIT_SIZE: 4096
+      PLANTUML_STATS: "off"
+      JETTY_START: /tmp/jetty/jetty.start
+      JETTY_PROPERTIES: jetty.server.tempDirectory=/tmp/jetty
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    networks:
+      - renderer-backplane
+    read_only: true
+    tmpfs:
+      - /tmp/jetty:size=256m,nosuid,nodev,mode=1777
+      - /var/lib/jetty/work:size=16m,nosuid,nodev,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 768m
+    cpus: 1.00
+
+networks:
+  renderer-backplane:
+    internal: true
+  api-edge:

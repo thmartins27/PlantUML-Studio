@@ -1,46 +1,51 @@
-import { useEffect, useRef, useState } from 'react';
-import type { DemoFile, PreviewState } from './demo-data';
-import { DemoDiagram } from './demo-diagram';
+import type { RenderPreviewState } from '../../application/rendering/use-render-preview';
 import { Icon } from './icon';
-import { IconButton } from './button';
+import { InteractiveCanvas } from './interactive-canvas';
 
 interface PreviewPanelProps {
-  file: DemoFile | null;
-  state: PreviewState;
-  onStateChange: (state: PreviewState) => void;
-  onOpenExample: () => void;
+  state: RenderPreviewState;
+  documentPath: string | null;
+  onRetry: () => void;
+  expanded: boolean;
+  onToggleExpanded: () => void;
 }
-export function PreviewPanel({ file, state, onStateChange, onOpenExample }: PreviewPanelProps) {
-  const [zoom, setZoom] = useState(100);
-  const [baseScale, setBaseScale] = useState(1);
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const hasDiagram = state === 'example' && !!file?.diagram;
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry.contentRect.width === 0) return;
-      setBaseScale(Math.max(0.25, Math.min(1, (entry.contentRect.width - 48) / 520, (entry.contentRect.height - 150) / 400)));
-    });
-    observer.observe(viewport);
-    return () => observer.disconnect();
-  }, []);
-  return <section id="preview-panel" className="preview-panel" aria-label="Visualização demonstrativa">
-    <div className="panel-heading preview-heading"><h2>Visualização</h2><span><Icon name="image" />SVG demonstrativo</span></div>
-    <div className="preview-state-bar"><label htmlFor="preview-state">Estado do preview</label><select id="preview-state" value={state} onChange={event => onStateChange(event.target.value as PreviewState)}>
-      <option value="example">Exemplo</option><option value="loading">Carregando</option><option value="error">Erro</option><option value="empty">Vazio</option>
-    </select></div>
-    <div ref={viewportRef} className="preview-viewport" aria-busy={state === 'loading'}>
-      {hasDiagram ? <div className="diagram-scroll-area"><figure className="diagram-figure"><div style={{ width: 520 * baseScale * zoom / 100, height: 400 * baseScale * zoom / 100 }}><DemoDiagram kind={file.diagram!} /></div><figcaption>Exemplo estático · sem renderização PlantUML</figcaption></figure></div> :
-        <div className={`preview-message ${state === 'error' ? 'is-error' : ''}`} role={state === 'error' ? 'alert' : 'status'}>
-          {state === 'loading' ? <><span className="spinner" aria-hidden="true" /><h3>Carregando demonstração</h3><p>Este estado é apenas uma simulação visual.</p></> : state === 'error' ? <><div className="state-icon"><Icon name="alert" /></div><h3>Não foi possível exibir o preview</h3><p>Erro simulado. Nenhuma requisição foi enviada.</p><button className="button secondary" onClick={onOpenExample}>Voltar ao exemplo</button></> : <><div className="state-icon"><Icon name="image" /></div><h3>Nenhum diagrama para visualizar</h3><p>Selecione um exemplo para explorar a interface.</p><button className="button secondary" onClick={onOpenExample}>Abrir exemplo</button></>}
-        </div>}
+
+export function PreviewPanel({ state, documentPath, onRetry, expanded, onToggleExpanded }: PreviewPanelProps) {
+  const svgUrl = state.svg ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(state.svg)}` : null;
+  const hasDiagram = svgUrl !== null;
+  return <section id="preview-panel" className="preview-panel" aria-label="Visualização PlantUML">
+    <div className="panel-heading preview-heading">
+      <h2>Visualização</h2>
+      <span title={documentPath ?? 'SVG PlantUML'}><Icon name="image" /><span className="preview-document-name">{documentPath ?? 'SVG PlantUML'}</span></span>
     </div>
-    <div className="zoom-toolbar" role="group" aria-label="Zoom do SVG demonstrativo">
-      <IconButton icon="minus" label="Diminuir zoom" disabled={!hasDiagram || zoom <= 50} onClick={() => setZoom(value => Math.max(50, value - 10))} />
-      <output aria-live="polite" aria-label="Zoom atual">{zoom}%</output>
-      <IconButton icon="plus" label="Aumentar zoom" disabled={!hasDiagram || zoom >= 200} onClick={() => setZoom(value => Math.min(200, value + 10))} />
-      <span className="toolbar-divider" /><IconButton icon="fit" label="Ajustar diagrama à área" disabled={!hasDiagram} onClick={() => setZoom(100)} />
+    <div className="preview-state-bar" role="status" aria-live="polite">
+      <span>{statusLabel(state)}</span>
+      {state.durationMs !== null && <span>{state.durationMs} ms</span>}
+    </div>
+    <div className="preview-viewport" aria-busy={state.status === 'loading'}>
+      {hasDiagram && <InteractiveCanvas svgUrl={svgUrl} expanded={expanded} onToggleExpanded={onToggleExpanded} />}
+      {state.status === 'loading' && !hasDiagram && <PreviewMessage kind="loading" />}
+      {state.status === 'empty' && <PreviewMessage kind="empty" />}
+      {state.status === 'error' && <div className={`preview-feedback ${hasDiagram ? 'over-diagram' : ''}`} role="alert">
+        <div><Icon name="alert" /><span><strong>Falha na renderização</strong>{state.error.line ? ` · linha ${state.error.line}` : ''}</span></div>
+        <p>{state.error.message}{state.error.path ? ` Arquivo: ${state.error.path}.` : ''}{state.error.includeStack?.length ? ` Cadeia: ${state.error.includeStack.join(' → ')}.` : ''}{hasDiagram ? ' O último SVG válido foi preservado.' : ''}</p>
+        <button className="button secondary" onClick={onRetry}>Tentar novamente</button>
+      </div>}
+      {state.status === 'loading' && hasDiagram && <div className="preview-progress"><span className="spinner small" aria-hidden="true" />Atualizando preview…</div>}
+      {!hasDiagram && <button type="button" className="preview-expand-button icon-button" onClick={onToggleExpanded} aria-label={expanded ? 'Sair da visualização em tela cheia' : 'Expandir visualização em tela cheia'} title={`${expanded ? 'Sair da tela cheia' : 'Tela cheia'} (F11)`}><Icon name={expanded ? 'fullscreenExit' : 'fullscreen'} /></button>}
     </div>
   </section>;
+}
+
+function statusLabel(state: RenderPreviewState): string {
+  if (state.status === 'loading') return state.svg ? 'Atualizando…' : 'Renderizando…';
+  if (state.status === 'success') return 'Preview atualizado';
+  if (state.status === 'error') return state.svg ? 'Erro · exibindo último resultado válido' : 'Erro de renderização';
+  return 'Aguardando documento';
+}
+
+function PreviewMessage({ kind }: { kind: 'loading' | 'empty' }) {
+  return <div className="preview-message" role="status">
+    {kind === 'loading' ? <><span className="spinner" aria-hidden="true" /><h3>Renderizando diagrama</h3><p>O motor PlantUML está processando o documento ativo.</p></> : <><div className="state-icon"><Icon name="image" /></div><h3>Nenhum diagrama para visualizar</h3><p>Abra um documento PlantUML para iniciar a renderização.</p></>}
+  </div>;
 }

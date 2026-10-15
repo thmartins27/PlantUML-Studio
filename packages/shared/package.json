@@ -2,11 +2,12 @@
   "name": "@plantuml-studio/shared",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./src/index.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
     }
   },
   "scripts": {
